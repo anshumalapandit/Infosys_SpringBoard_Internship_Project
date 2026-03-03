@@ -1,0 +1,71 @@
+<div class="login-page">
+  <!-- Left Side - Login Form -->
+  <div class="form-section">
+    <div class="form-container">
+      <!-- Back Button -->
+      <a href="/" class="back-link">
+        <lucide-icon name="arrow-left" [size]="16" class="back-arrow"></lucide-icon> Back to Home
+      </a>
+
+      <!-- Logo and Title -->
+      <div class="header">
+        <div class="logo">
+          <lucide-icon name="siren" [size]="28" class="logo-icon"></lucide-icon>
+          Sentinel
+        </div>
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Sign in to access your disaster management dashboard</p>
+      </div>
+
+      <!-- Success Message -->
+      <div *ngIf="successMessage" class="success-message">
+        {{ successMessage }}
+      </div>
+
+      <!-- Login Form (Standard Angular Submission) -->
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" [(ngModel)]="credentials.username" class="form-input"
+            placeholder="Enter your username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" [(ngModel)]="credentials.password" class="form-input"
+            placeholder="Enter your password" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="!loading">Sign In</span>
+          <span *ngIf="loading" class="loading-text">
+            <span class="spinner"></span> Signing in...
+          </span>
+        </button>
+
+        <!-- Error Message (Visible below the button) -->
+        <div *ngIf="error" class="error-message">
+          <span class="error-icon"></span>
+          {{ error }}
+        </div>
+
+        <!-- Footer Links -->
+        <div class="form-footer">
+          <p>Don't have an account? <a href="/auth/register" class="link">Sign Up</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right Side - Image -->
+  <div class="image-section">
+    <img src="https://cdn.pixabay.com/photo/2022/08/19/09/05/volcano-7396466_1280.jpg"
+      style="width: 100%; height: 100%; object-fit: cover;" />
+    <div class="volcano-overlay"></div>
+    <div class="volcano-text">
+
+    </div>
+
+  </div>
+</div>

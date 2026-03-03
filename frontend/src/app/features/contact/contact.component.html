@@ -1,0 +1,196 @@
+<div class="contact-page">
+    <!-- Navbar (Shared style from landing) -->
+    <nav class="navbar">
+        <div class="logo" routerLink="/">
+            <lucide-icon name="siren" class="logo-icon"></lucide-icon>
+            <span class="logo-text">Sentinel</span>
+        </div>
+        <ul class="nav-links">
+            <li><a routerLink="/" fragment="features">Features</a></li>
+            <li><a routerLink="/" fragment="mission">Mission</a></li>
+            <li><a routerLink="/" fragment="news">News</a></li>
+            <li><a routerLink="/contact" class="active">Contact</a></li>
+        </ul>
+        <div class="auth-actions">
+            <a routerLink="/auth/login" class="btn-login">Log In</a>
+            <a routerLink="/auth/register" class="btn-signup">Sign Up</a>
+        </div>
+    </nav>
+
+    <main class="content-wrapper">
+        <!-- Simple Header -->
+        <div class="page-header">
+            <h1>Contact Us</h1>
+            <p>Get in touch with the Sentinel team for support and inquiries.</p>
+        </div>
+
+        <!-- Contact Info Cards -->
+        <section class="info-grid">
+            <div class="info-card">
+                <div class="icon-wrapper">
+                    <lucide-icon name="phone-call" [size]="32" class="info-lucide-icon"></lucide-icon>
+                </div>
+                <h3>Emergency Helplines</h3>
+                <p>Immediate life-threatening situations:</p>
+                <div class="helplines">
+                    <span class="number">112</span>
+                    <span class="label">All-in-one</span>
+                </div>
+                <div class="helplines">
+                    <span class="number">101</span>
+                    <span class="label">Fire Department</span>
+                </div>
+                <div class="helplines">
+                    <span class="number">108</span>
+                    <span class="label">Ambulance</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="icon-wrapper">
+                    <lucide-icon name="mail" [size]="32" class="info-lucide-icon"></lucide-icon>
+                </div>
+                <h3>Support & Inquiry</h3>
+                <p>For technical issues or general questions:</p>
+                <a href="mailto:support@sentinel-ops.com" class="link">support@sentinel-ops.com</a>
+                <p class="note">Expected response: within 24 hours</p>
+            </div>
+
+            <div class="info-card">
+                <div class="icon-wrapper">
+                    <lucide-icon name="shield" [size]="32" class="info-lucide-icon"></lucide-icon>
+                </div>
+                <h3>Trust & Safety</h3>
+                <p>Our platform is built on principles of responsible data handling and privacy-first communication.</p>
+                <div class="tags">
+                    <span class="tag">Privacy-First</span>
+                    <span class="tag">Safety-Focused</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Form Section -->
+        <section class="form-section">
+            <div class="form-header">
+                <h2>Send us a Message</h2>
+                <p>Use this form for non-emergency feedback, bug reports, and partnership inquiries.</p>
+                <div class="emergency-inline-note">
+                    <p><strong>Note:</strong> This form is for support and feedback. For reporting emergencies, please
+                        use the <a routerLink="/user/dashboard">citizen dashboard</a>.</p>
+                </div>
+            </div>
+
+            <div class="form-container" *ngIf="!submitted; else thankYou">
+                <form (ngSubmit)="onSubmit()" #cForm="ngForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" [(ngModel)]="contactForm.name" required
+                                placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Id</label>
+                            <input type="email" id="email" name="email" [(ngModel)]="contactForm.email" required
+                                placeholder="john@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <select id="subject" name="subject" [(ngModel)]="contactForm.subject" required>
+                            <option value="" disabled selected>Select a topic</option>
+                            <option *ngFor="let s of subjects" [value]="s">{{s}}</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom Subject (Shown only if 'Other' is selected) -->
+                    <div class="form-group animate-in" *ngIf="contactForm.subject === 'Other'">
+                        <label for="customSubject">Please specify your topic</label>
+                        <input type="text" id="customSubject" name="customSubject"
+                            [(ngModel)]="contactForm.customSubject" required placeholder="Enter your topic here">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Your Message</label>
+                        <textarea id="message" name="message" [(ngModel)]="contactForm.message" required rows="5"
+                            placeholder="How can we help?"></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn" [disabled]="!cForm.form.valid">Send Message</button>
+                </form>
+            </div>
+
+            <ng-template #thankYou>
+                <div class="success-message">
+                    <div class="success-icon-wrapper">
+                        <lucide-icon name="circle-check" [size]="48" class="success-lucide-icon"></lucide-icon>
+                    </div>
+                    <h3>Message Sent!</h3>
+                    <p>Thank you for reaching out. Our team will review your message and get back to you shortly.</p>
+                    <button (click)="submitted = false" class="btn-reset">Send another message</button>
+                </div>
+            </ng-template>
+        </section>
+
+        <!-- Mission Aligned Section -->
+        <section class="mission-section">
+            <div class="mission-box">
+                <div class="mission-content">
+                    <h2>Collaborating for Safety</h2>
+                    <p>Sentinel is more than just a tool; it's a commitment to community safety and responsible
+                        innovation. We believe that through collaboration and data-driven insights, we can significantly
+                        reduce the impact of disasters.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom CTA -->
+    <section class="bottom-cta">
+        <h2>Together, we can build safer communities.</h2>
+        <div class="cta-actions">
+            <a routerLink="/landing" class="btn-outline">Explore Features</a>
+            <a routerLink="/user/dashboard" class="btn-primary">Go to Dashboard</a>
+        </div>
+    </section>
+
+    <!-- Footer (Premium Style) -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <lucide-icon name="siren" [size]="24" class="footer-icon"></lucide-icon>
+                    <span>Sentinel</span>
+                </div>
+                <p>Advanced disaster management and emergency response platform</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Platform</h4>
+                    <a routerLink="/" fragment="features">Features</a>
+                    <a routerLink="/" fragment="mission">Mission</a>
+                    <a routerLink="/" fragment="responders">For Responders</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="#">Documentation</a>
+                    <a href="#">API</a>
+                    <a routerLink="/contact">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Security</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Sentinel. All rights reserved.</p>
+            <div class="footer-security">
+                <span>256-bit Encryption</span>
+                <span>GDPR Compliant</span>
+            </div>
+        </div>
+    </footer>
+</div>
