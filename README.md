@@ -1,4 +1,4 @@
-# 🛡️ Sentinel — Disaster Management System
+# 🛡️ Sentinel — Disaster Management & Alert System
 ### Infosys SpringBoard Internship Project
 
 > A full-stack, real-time disaster management platform built for Infosys SpringBoard Internship. Sentinel enables administrators, responders, and citizens to collaboratively manage disaster events through live dashboards, broadcast alerts, and citizen help requests — all secured with JWT-based authentication.
