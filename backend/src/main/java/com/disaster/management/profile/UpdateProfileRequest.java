@@ -20,4 +20,6 @@ public class UpdateProfileRequest {
     // Responder GPS location
     private Double latitude;
     private Double longitude;
+    private String badgeNumber;
+    private String responderType;
 }

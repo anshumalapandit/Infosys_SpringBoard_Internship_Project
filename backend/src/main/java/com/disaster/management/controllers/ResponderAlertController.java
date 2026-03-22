@@ -47,7 +47,7 @@ public class ResponderAlertController {
      */
     @PostMapping("/alerts/{disasterId}/acknowledge")
     public ResponseEntity<AlertAcknowledgment> acknowledgeAlert(
-            @PathVariable Long disasterId,
+            @PathVariable("disasterId") Long disasterId,
             @Valid @RequestBody AcknowledgeAlertRequest request,
             Authentication auth) {
 
@@ -77,6 +77,36 @@ public class ResponderAlertController {
                 notificationRepository.findByUserIdOrderBySentAtDesc(responderId));
     }
 
+    /**
+     * Delete a specific notification.
+     * DELETE /api/responder/alerts/notifications/{id}
+     */
+    @DeleteMapping("/alerts/notifications/{id}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable("id") Long id, Authentication auth) {
+        Long responderId = resolveUserId(auth);
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        
+        if (!notification.getUserId().equals(responderId)) {
+            return ResponseEntity.status(403).build();
+        }
+        
+        notificationRepository.delete(notification);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Clear all notifications for the responder.
+     * DELETE /api/responder/alerts/notifications/clear-all
+     */
+    @DeleteMapping("/alerts/notifications/clear-all")
+    public ResponseEntity<Void> clearAllNotifications(Authentication auth) {
+        Long responderId = resolveUserId(auth);
+        List<Notification> notifications = notificationRepository.findByUserIdOrderBySentAtDesc(responderId);
+        notificationRepository.deleteAll(notifications);
+        return ResponseEntity.noContent().build();
+    }
+
     // --------------------------------------------------------------------------
     // Help Request management (responder side)
     // --------------------------------------------------------------------------
@@ -97,7 +127,7 @@ public class ResponderAlertController {
      */
     @PostMapping("/help-requests/{id}/accept")
     public ResponseEntity<HelpRequest> acceptRequest(
-            @PathVariable Long id, Authentication auth) {
+            @PathVariable("id") Long id, Authentication auth) {
         Long responderId = resolveUserId(auth);
         return ResponseEntity.ok(citizenHelpRequestService.acceptHelpRequest(id, responderId));
     }
@@ -108,7 +138,7 @@ public class ResponderAlertController {
      */
     @PostMapping("/help-requests/{id}/complete")
     public ResponseEntity<HelpRequest> completeRequest(
-            @PathVariable Long id, Authentication auth) {
+            @PathVariable("id") Long id, Authentication auth) {
         Long responderId = resolveUserId(auth);
         return ResponseEntity.ok(citizenHelpRequestService.completeHelpRequest(id, responderId));
     }

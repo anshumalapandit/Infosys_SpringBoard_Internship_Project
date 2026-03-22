@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -57,7 +58,11 @@ public class DisasterApiService {
         syncFromExternalApi();
     }
 
+    @Transactional
     public void syncFromExternalApi() {
+        log.info("Cleaning up old PENDING records before fresh sync...");
+        repository.deleteByStatus(DisasterStatus.PENDING);
+
         syncUSGS();
         syncNASA();
         syncOpenWeather();

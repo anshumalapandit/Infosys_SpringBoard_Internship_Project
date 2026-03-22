@@ -22,6 +22,7 @@ export const routes: Routes = [
         loadChildren: () => import('./features/user/user.routes').then(m => m.USER_ROUTES)
     },
     { path: 'landing', loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
+    { path: 'mission', loadComponent: () => import('./features/mission/mission.component').then(m => m.MissionComponent) },
     { path: 'contact', loadComponent: () => import('./features/contact/contact.component').then(m => m.ContactComponent) },
     { path: 'unauthorized', loadComponent: () => import('./shared/components/unauthorized.component').then(m => m.UnauthorizedComponent) },
     { path: '', redirectTo: 'landing', pathMatch: 'full' }

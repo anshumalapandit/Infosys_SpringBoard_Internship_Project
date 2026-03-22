@@ -87,7 +87,7 @@ public class CitizenController {
      */
     @PatchMapping("/notifications/{id}/read")
     public ResponseEntity<Notification> markAsRead(
-            @PathVariable Long id, Authentication auth) {
+            @PathVariable("id") Long id, Authentication auth) {
         Long citizenId = resolveUserId(auth);
         Notification notif = notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found: " + id));

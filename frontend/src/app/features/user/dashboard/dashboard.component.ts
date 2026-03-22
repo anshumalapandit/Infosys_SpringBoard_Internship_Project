@@ -7,21 +7,21 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DisasterService } from '../../../core/services/disaster.service';
 import {
   LucideAngularModule,
-  Shield,
-  Home,
-  TriangleAlert,
-  FileText,
+  AlertCircle,
+  Phone,
+  PhoneCall,
+  Navigation,
+  ExternalLink,
+  ShieldCheck,
+  Zap,
+  Clock,
+  PieChart,
+  CircleDashed,
+  Info,
   Flame,
-  Waves,
-  Activity,
-  ShieldAlert,
-  User,
-  Pencil,
-  X,
-  Check,
-  MapPin,
-  Bell,
-  BellRing
+  Siren,
+  LifeBuoy,
+  Shield
 } from 'lucide-angular';
 
 @Component({
@@ -82,85 +82,325 @@ import {
         </header>
 
         <!-- Dashboard Tab -->
-        <div *ngIf="activeTab === 'dashboard' || activeTab === 'report'">
+        <div *ngIf="activeTab === 'dashboard'" class="dashboard-wrapper">
+          
+          <!-- TOP SECTION – WELCOME + SAFETY STATUS -->
+          <div class="safety-grid">
+            <!-- Welcome Card -->
+            <div class="welcome-card card">
+               <div style="display: flex; align-items: center; gap: 24px;">
+                  <div class="safety-pulse" [class.safe]="safetyLevel === 'SAFE'" [class.moderate]="safetyLevel === 'MODERATE'" [class.high]="safetyLevel === 'HIGH RISK'"></div>
+                  <div style="flex: 1;">
+                    <h2 class="welcome-title">Welcome back, {{ currentUser?.fullName || 'Citizen' }}</h2>
+                    <p class="welcome-subtitle">"{{ smartSuggestion }}"</p>
+                  </div>
+               </div>
+            </div>
+            
+            <div class="status-card-premium card" [class.bg-green]="safetyLevel === 'SAFE'" [class.bg-yellow]="safetyLevel === 'MODERATE'" [class.bg-red]="safetyLevel === 'HIGH RISK'">
+               <div class="status-content">
+                  <div class="status-label">CURRENT SAFETY STATUS</div>
+                  <div class="status-value">{{ safetyLevel }}</div>
+               </div>
+               <lucide-icon [name]="safetyLevel === 'SAFE' ? 'shield-check' : 'triangle-alert'" [size]="40" class="status-icon"></lucide-icon>
+            </div>
+          </div>
+
+          <div class="section-title-row" style="margin-top: 8px;">
+            <h3 class="section-heading"><lucide-icon name="zap" [size]="18"></lucide-icon> Quick Actions</h3>
+          </div>            
+          
+          <!-- Action Grid -->
+          <div class="quick-actions-grid">
+            <div class="action-card" (click)="activeTab = 'report'">
+              <div class="action-icon red">
+                <lucide-icon name="shield-alert" [size]="20" style="stroke-width: 2.5;"></lucide-icon>
+              </div>
+              <span>Report Incident</span>
+            </div>
+            <div class="action-card" (click)="callEmergency()">
+              <div class="action-icon blue">
+                <lucide-icon name="phone" [size]="20" style="stroke-width: 2.5;"></lucide-icon>
+              </div>
+              <span>Emergency Contact</span>
+            </div>
+            <div class="action-card" (click)="shareLocation()">
+              <div class="action-icon green">
+                <lucide-icon name="navigation" [size]="20" style="stroke-width: 2.5;"></lucide-icon>
+              </div>
+              <span>Share Location</span>
+            </div>
+            <div class="action-card" (click)="activeTab = 'notifications'">
+              <div class="action-icon orange">
+                <lucide-icon name="bell" [size]="20" style="stroke-width: 2.5;"></lucide-icon>
+              </div>
+              <span>View Alerts</span>
+            </div>
+          </div>
+          <div class="dashboard-main-grid">
+             <!-- Left Column: Safety Awareness Library -->
+             <div class="main-left">
+                <!-- Safety Card 1: Essential Kit (Primary) -->
+                <div class="smart-suggestion-card" style="background: #eff6ff; border: 1.5px solid #bfdbfe; margin-bottom: 20px;">
+                  <div class="suggestion-header" style="color: #1e40af;">
+                    <lucide-icon name="info" [size]="16" style="color: #3b82f6;"></lucide-icon>
+                    Safety Awareness: The Essential Kit
+                  </div>
+                  <p class="suggestion-text" style="color: #1e3a8a; font-weight: 600; font-size: 0.85rem; margin-top: 10px; line-height: 1.6;">
+                    "Your safety starts with a 3-day emergency kit. Always keep water, a flashlight, power banks, and essential medications ready for immediate departure."
+                  </p>
+                </div>
+
+                <!-- Safety Card 2: Evacuation Awareness (Amber) -->
+                <div class="smart-suggestion-card" style="background: #fffbeb; border: 1.5px solid #fde68a; margin-bottom: 20px;">
+                  <div class="suggestion-header" style="color: #92400e;">
+                    <lucide-icon name="navigation" [size]="16" style="color: #d97706;"></lucide-icon>
+                    Safety Awareness: Evacuation Planning
+                  </div>
+                  <p class="suggestion-text" style="color: #78350f; font-weight: 600; font-size: 0.85rem; margin-top: 10px; line-height: 1.6;">
+                    "Map out two clear evacuation routes from your home. Practice your family emergency meeting spot and always follow official instructions during active crises."
+                  </p>
+                </div>
+
+                <!-- Safety Card 3: Trust Official Sources (Sage) -->
+                <div class="smart-suggestion-card" style="background: #f0fdf4; border: 1.5px solid #bbf7d0; margin-bottom: 20px;">
+                  <div class="suggestion-header" style="color: #166534;">
+                    <lucide-icon name="shield-check" [size]="16" style="color: #15803d;"></lucide-icon>
+                    Safety Awareness: Trusted Information
+                  </div>
+                  <p class="suggestion-text" style="color: #14532d; font-weight: 600; font-size: 0.85rem; margin-top: 10px; line-height: 1.6;">
+                    "Verify all crisis news before sharing. Trust only official Sentinel reports, government channels, and verified apps to prevent the spread of misinformation."
+                  </p>
+                </div>
+
+                <!-- NEARBY INCIDENTS (Conditional) -->
+                <div class="content-card card" *ngIf="nearbyIncidents.length > 0">
+                  <div class="card-header-flex" style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9;">
+                    <h3 class="section-heading"><lucide-icon name="map-pin" [size]="18"></lucide-icon> Nearby Incidents</h3>
+                  </div>
+                  <div class="recent-list">
+                    <div class="incident-item" *ngFor="let incident of nearbyIncidents">
+                      <div class="incident-icon" [ngClass]="incident.type.toLowerCase()">
+                        <lucide-icon [name]="getIncidentIcon(incident.type)" [size]="16"></lucide-icon>
+                      </div>
+                      <div class="incident-info">
+                        <div class="incident-primary">{{ incident.title }}</div>
+                        <div class="incident-secondary">{{ incident.severity }} Alert • {{ incident.distance }} away</div>
+                      </div>
+                      <div class="incident-status-tag" [class.active]="incident.status === 'VERIFIED'">{{ incident.status }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RECENT ACTIVITY (Conditional) -->
+                <div class="content-card card" *ngIf="submissions.length > 0">
+                   <div class="card-header-flex" style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9;">
+                      <h3 class="section-heading"><lucide-icon name="clock" [size]="18"></lucide-icon> Your Recent Activity</h3>
+                      <button class="view-all-btn" (click)="loadMySubmissions()" style="font-size: 0.7rem; background: #f1f5f9; border: none; padding: 4px 10px; border-radius: 6px; font-weight: 800; cursor: pointer;">Refresh</button>
+                   </div>
+                   <div class="recent-list" style="padding: 16px;">
+                      <div class="activity-item" *ngFor="let sub of submissions.slice(0,4)" style="padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #f8fafc; display: flex; align-items: center; gap: 14px;">
+                        <div class="activity-icon" [class.pending]="sub.status === 'PENDING'" [class.resolved]="sub.status === 'RESOLVED' || sub.status === 'COMPLETED'" style="width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f1f5f9;">
+                          <lucide-icon name="activity" [size]="14"></lucide-icon>
+                        </div>
+                        <div class="activity-details" style="flex: 1;">
+                           <span class="activity-title" style="font-weight: 700; color: #1e293b; font-size: 0.85rem; display: block;">{{ sub.type }} reported</span>
+                           <span class="activity-time" style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{{ sub.location }} • {{ sub.time }}</span>
+                        </div>
+                        <span class="status-tag" [class.pending]="sub.status === 'PENDING'" style="font-size: 0.65rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; background: #f1f5f9; color: #64748b;">{{ sub.status }}</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             <!-- Right Column -->
+             <div class="main-right">
+                <!-- LOCAL ALERT SUMMARY -->
+                <div class="content-card card" style="margin-bottom: 16px;">
+                   <div class="card-header" style="padding: 18px 24px; border-bottom: 1px solid #f1f5f9;">
+                     <h3 class="section-heading"><lucide-icon name="info" [size]="18"></lucide-icon> Local Alert Summary</h3>
+                   </div>
+                   <div style="padding: 24px;">
+                     <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+                        <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">ACTIVE ALERTS IN AREA</span>
+                        <span style="font-size: 2rem; font-weight: 950; color: #1e293b;" [class.text-danger]="unreadCount > 0">{{ unreadCount }}</span>
+                     </div>
+                     <div style="background: #f8fafc; border: 1px solid #eff6ff; padding: 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: #4b5563; display: flex; align-items: center; gap: 10px;">
+                        <lucide-icon name="bell" [size]="14" style="color: #3b82f6;"></lucide-icon>
+                        Last: {{ lastAlertType || 'No active alerts' }}
+                      </div>
+                   </div>
+                </div>
+
+                <!-- ALERT PERFORMANCE -->
+                <div class="content-card card">
+                   <div class="card-header" style="padding: 18px 24px; border-bottom: 1px solid #f1f5f9;">
+                      <h3 class="section-heading"><lucide-icon name="pie-chart" [size]="18"></lucide-icon> Alert Performance</h3>
+                   </div>
+                   <div class="insight-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 24px; text-align: center;">
+                      <div class="perf-item">
+                         <div class="insight-circle blue" style="width: 48px; height: 48px; border: 3px solid #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #1e40af; font-size: 1rem; margin: 0 auto 8px;">{{ unreadCount }}</div>
+                         <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">RECEIVED</span>
+                      </div>
+                      <div class="perf-item" style="opacity: 0.7;">
+                         <div class="insight-circle green" style="width: 48px; height: 48px; border: 3px solid #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #166534; font-size: 1rem; margin: 0 auto 8px;">0</div>
+                         <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">ACK'D</span>
+                      </div>
+                      <div class="perf-item" style="opacity: 0.7;">
+                         <div class="insight-circle gray" style="width: 48px; height: 48px; border: 3px solid #94a3b8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #475569; font-size: 1rem; margin: 0 auto 8px;">0</div>
+                         <span style="font-size: 0.6rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">IGNORED</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <footer class="dashboard-footer">
+            "Your safety is our priority. Stay alert."
+          </footer>
+        </div>
+
+        <!-- Report Incident Tab -->
+        <div *ngIf="activeTab === 'report'">
           <div class="dashboard-grid">
-            <!-- Left Column: Report Form -->
-            <div class="card report-card">
-              <div class="card-header">
-                <div class="icon-box red">
-                  <lucide-icon name="shield-alert" [size]="24"></lucide-icon>
+            <!-- Left Column: Report Form + Helpline Hub -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <div class="card report-card">
+                <div class="card-header">
+                  <div class="icon-box red">
+                    <lucide-icon name="shield-alert" [size]="24"></lucide-icon>
+                  </div>
+                  <h3>Quick Incident Report</h3>
                 </div>
-                <h3>Quick Incident Report</h3>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Emergency Type</label>
+                      <select [(ngModel)]="report.type" class="form-control">
+                        <option value="FIRE">Fire Emergency</option>
+                        <option value="FLOOD">Flood Alert</option>
+                        <option value="MEDICAL">Medical Emergency</option>
+                        <option value="CRIME">Security/Crime</option>
+                        <option value="OTHER">Other Incident</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Location (Region/Area)</label>
+                      <input type="text" [(ngModel)]="report.location" class="form-control" placeholder="E.g. Downtown, North Square">
+                    </div>
+                  </div>
+                  <div class="form-group mt-3">
+                    <label>Incident Details</label>
+                    <textarea [(ngModel)]="report.description" class="form-control" rows="3" placeholder="Describe the emergency context..."></textarea>
+                  </div>
+                  <div class="submit-feedback success" *ngIf="submitSuccess">{{ submitSuccess }}</div>
+                  <div class="submit-feedback error" *ngIf="submitError">{{ submitError }}</div>
+                  <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button class="back-btn" (click)="activeTab = 'dashboard'">Back to Dashboard</button>
+                    <button class="submit-btn" (click)="submitReport()" [disabled]="submitting" style="flex: 1; margin-top: 0;">
+                      {{ submitting ? 'Submitting...' : 'Submit Emergency Report' }}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="card-body">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label>Emergency Type</label>
-                    <select [(ngModel)]="report.type" class="form-control">
-                      <option value="FIRE">Fire Emergency</option>
-                      <option value="FLOOD">Flood Alert</option>
-                      <option value="MEDICAL">Medical Emergency</option>
-                      <option value="CRIME">Security/Crime</option>
-                      <option value="OTHER">Other Incident</option>
-                    </select>
+
+              <!-- Emergency Helpline Hub Snug below the Report Form -->
+              <div class="card helpline-hub">
+                <div class="card-header-flex" style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                  <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <lucide-icon name="phone" [size]="18" style="color: #dc2626;"></lucide-icon> Emergency Helpline Hub
+                  </h3>
+                  <span class="view-link" style="color: #dc2626; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;">24/7 National Support</span>
+                </div>
+                <div class="helpline-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 24px;">
+                  <div class="helpline-item" (click)="callEmergency()" style="border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s;">
+                    <div class="helpline-icon" style="background: #fee2e2; color: #dc2626; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <lucide-icon name="phone-call" [size]="20"></lucide-icon>
+                    </div>
+                    <div class="helpline-details">
+                      <span style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 2px;">MEDICAL EMERGENCY</span>
+                      <span style="font-size: 1.1rem; font-weight: 900; color: #1e293b;">108</span>
+                    </div>
                   </div>
-                  <div class="form-group">
-                    <label>Location (Region/Area)</label>
-                    <input type="text" [(ngModel)]="report.location" class="form-control" placeholder="E.g. Downtown, North Square">
+                  <div class="helpline-item" style="border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s;">
+                    <div class="helpline-icon" style="background: #e0f2fe; color: #0284c7; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <lucide-icon name="shield" [size]="20"></lucide-icon>
+                    </div>
+                    <div class="helpline-details">
+                      <span style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 2px;">POLICE / SECURITY</span>
+                      <span style="font-size: 1.1rem; font-weight: 900; color: #1e293b;">100</span>
+                    </div>
+                  </div>
+                  <div class="helpline-item" style="border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s;">
+                    <div class="helpline-icon" style="background: #fff7ed; color: #ea580c; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <lucide-icon name="flame" [size]="20"></lucide-icon>
+                    </div>
+                    <div class="helpline-details">
+                      <span style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 2px;">FIRE SERVICES</span>
+                      <span style="font-size: 1.1rem; font-weight: 900; color: #1e293b;">101</span>
+                    </div>
+                  </div>
+                  <div class="helpline-item" style="border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s;">
+                    <div class="helpline-icon" style="background: #f0fdf4; color: #16a34a; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <lucide-icon name="life-buoy" [size]="20"></lucide-icon>
+                    </div>
+                    <div class="helpline-details">
+                      <span style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 2px;">DISASTER CONTROL</span>
+                      <span style="font-size: 1.1rem; font-weight: 900; color: #1e293b;">1077</span>
+                    </div>
                   </div>
                 </div>
-                <div class="form-group mt-3">
-                  <label>Incident Details</label>
-                  <textarea [(ngModel)]="report.description" class="form-control" rows="3" placeholder="Describe the emergency context..."></textarea>
-                </div>
-                <div class="submit-feedback success" *ngIf="submitSuccess">{{ submitSuccess }}</div>
-                <div class="submit-feedback error" *ngIf="submitError">{{ submitError }}</div>
-                <button class="submit-btn" (click)="submitReport()" [disabled]="submitting">
-                  {{ submitting ? 'Submitting...' : 'Submit Emergency Report' }}
-                </button>
               </div>
             </div>
 
-            <!-- Right Column: Area Status -->
+            <!-- Right Column -->
             <div class="side-content">
-              <div class="card status-card">
-                <div class="card-header">
-                  <h3>Area Status</h3>
-                  <span class="badge success">Secure</span>
-                </div>
-                <div class="status-info">
-                  <div class="status-item">
-                    <span class="label">Local Region</span>
-                    <span class="value">{{ currentUser?.region || 'Update Profile' }}</span>
-                  </div>
-                  <div class="status-item">
-                    <span class="label">Active Alerts</span>
-                    <span class="value text-success">0 Alerts</span>
-                  </div>
-                </div>
-              </div>
+               <!-- Area Status Card -->
+               <div class="card status-card">
+                 <div class="card-header">
+                   <h3>Area Status</h3>
+                   <span class="badge success" *ngIf="unreadCount === 0">Secure</span>
+                   <span class="badge" [class.bg-yellow]="unreadCount > 0" *ngIf="unreadCount > 0" style="background: #fef3c7; color: #d97706;">Active Alerts</span>
+                 </div>
+                 <div class="status-info" style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+                   <div class="status-item" style="display: flex; justify-content: space-between; align-items: center;">
+                     <span class="label" style="color: #64748b; font-size: 0.875rem;">Local Region</span>
+                     <span class="value" style="font-weight: 700; color: #111827;">{{ currentUser?.region || 'Update Profile' }}</span>
+                   </div>
+                   <div class="status-item" style="display: flex; justify-content: space-between; align-items: center;">
+                     <span class="label" style="color: #64748b; font-size: 0.875rem;">Active Alerts</span>
+                     <span class="value" [class.text-success]="unreadCount === 0" [class.text-danger]="unreadCount > 0">{{ unreadCount }} Alerts</span>
+                   </div>
+                 </div>
+               </div>
 
-              <div class="card activity-card">
-                <div class="card-header">
-                  <h3>Recent Submissions</h3>
-                </div>
-                <div class="activity-list">
-                  <div class="activity-item" *ngFor="let r of submissions">
-                    <div class="activity-icon" [class.pending]="r.status === 'PENDING'" [class.resolved]="r.status === 'RESOLVED'">
-                      <lucide-icon name="activity" [size]="16"></lucide-icon>
-                    </div>
-                    <div class="activity-details">
-                      <span class="activity-title">{{ r.type }} at {{ r.location }}</span>
-                      <span class="activity-time">{{ r.time }}</span>
-                    </div>
-                    <span class="status-tag" [class.pending]="r.status === 'PENDING'">{{ r.status }}</span>
-                  </div>
-                  <div *ngIf="submissions.length === 0" class="empty-state">
-                    No recent submissions found.
-                  </div>
-                </div>
-              </div>
+               <!-- Recent Submissions Card -->
+               <div class="card activity-card">
+                 <div class="card-header">
+                   <h3>Recent Submissions</h3>
+                 </div>
+                 <div class="activity-list">
+                   <div class="activity-item" *ngFor="let r of submissions">
+                     <div class="activity-icon" [class.pending]="r.status === 'PENDING'" [class.resolved]="r.status === 'RESOLVED' || r.status === 'COMPLETED'">
+                       <lucide-icon name="activity" [size]="16"></lucide-icon>
+                     </div>
+                     <div class="activity-details">
+                       <span class="activity-title">{{ r.type }} at {{ r.location }}</span>
+                       <span class="activity-time">{{ r.time }}</span>
+                     </div>
+                     <span class="status-tag" [class.pending]="r.status === 'PENDING'">{{ r.status }}</span>
+                   </div>
+                   <div *ngIf="submissions.length === 0" class="empty-state">
+                     No recent submissions found.
+                   </div>
+                 </div>
+               </div>
             </div>
+          </div>
+          
+          <!-- Consistent Safety Footer -->
+          <div class="dashboard-footer" style="margin-top: 40px; padding: 24px; text-align: center; color: #94a3b8; font-size: 0.85rem; font-weight: 600; font-style: italic; border-top: 1px solid #f1f5f9;">
+            "Stay informed. Stay safe."
           </div>
         </div>
 
@@ -333,42 +573,94 @@ import {
     .profile-role { font-size: 0.75rem; color: #64748b; }
     .profile-avatar { width: 40px; height: 40px; background: var(--secondary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 
-    /* Dashboard Grid */
-    .dashboard-grid { display: grid; grid-template-columns: 1fr 380px; gap: 32px; }
+    /* New Modern Dashboard Styles */
+    .dashboard-wrapper { display: flex; flex-direction: column; gap: 32px; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .safety-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    .welcome-card { padding: 32px; display: flex; align-items: center; border: 1px solid #f1f5f9; }
+    .welcome-title { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0 0 6px 0; }
+    .welcome-subtitle { color: #64748b; font-size: 0.95rem; margin: 0; }
+    
+    .safety-pulse { width: 14px; height: 14px; border-radius: 50%; position: relative; }
+    .safety-pulse::after { content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; opacity: 0.4; animation: pulse-ring 1.5s infinite; }
+    .safety-pulse.safe { background: #10b981; } .safety-pulse.safe::after { border: 2px solid #10b981; }
+    .safety-pulse.moderate { background: #f59e0b; } .safety-pulse.moderate::after { border: 2px solid #f59e0b; }
+    .safety-pulse.high { background: #ef4444; } .safety-pulse.high::after { border: 2px solid #ef4444; }
+    @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
+
+    .status-card-premium { padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; color: white; border: none; }
+    .status-card-premium.bg-green { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+    .status-card-premium.bg-yellow { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
+    .status-card-premium.bg-red { background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%); }
+    .status-label { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; opacity: 0.8; margin-bottom: 4px; }
+    .status-value { font-size: 1.5rem; font-weight: 900; }
+    .status-icon { opacity: 0.3; }
+
+    .quick-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .action-card { background: white; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
+    .action-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; }
+    .action-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .action-icon.red { background: #fef2f2; color: #ef4444; }
+    .action-icon.blue { background: #eff6ff; color: #3b82f6; }
+    .action-icon.green { background: #f0fdf4; color: #10b981; }
+    .action-icon.orange { background: #fffbeb; color: #f59e0b; }
+    .action-card span { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
+
+    .dashboard-main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    .main-left, .main-right { display: flex; flex-direction: column; gap: 24px; }
+
+    .smart-suggestion-card { background: #eff6ff; border: 1.5px dashed #3b82f6; border-radius: 16px; padding: 20px; }
+    .suggestion-header { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: #3b82f6; margin-bottom: 8px; }
+    .suggestion-text { color: #1e3a8a; font-weight: 600; line-height: 1.5; margin: 0; }
+
+    /* Structural Layout Grid Restored */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+    .side-content { display: flex; flex-direction: column; gap: 32px; }
+
     .card { background: white; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden; }
     .card-header { padding: 24px 32px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 16px; }
-    .card-header h3 { font-size: 1.25rem; font-weight: 700; color: var(--secondary); }
-    .card-body { padding: 32px; }
-    .icon-box { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    .icon-box.red { background: #fee2e2; color: var(--primary); }
+    .card-header h3 { font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin: 0; }
+    .card-body { padding: 24px 32px 16px; }
 
-    /* Form */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .form-group { display: flex; flex-direction: column; gap: 8px; }
-    .form-group label { font-size: 0.875rem; font-weight: 600; color: #64748b; }
-    .form-control { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: var(--secondary); font-family: inherit; transition: all 0.3s; box-sizing: border-box; }
+    /* Form Styles Restored & Tightened */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 2px; }
+    .form-control { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: var(--secondary); font-family: inherit; transition: all 0.3s; box-sizing: border-box; font-size: 0.9rem; }
     .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1); }
-    .mt-3 { margin-top: 20px; }
-    .submit-btn { width: 100%; margin-top: 16px; padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); }
+    .mt-3 { margin-top: 16px; }
+    .submit-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); }
     .submit-btn:hover:not(:disabled) { background: #b91c1c; transform: translateY(-1px); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .submit-feedback { padding: 10px 16px; border-radius: 10px; font-size: 0.875rem; font-weight: 600; margin-top: 12px; }
     .submit-feedback.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .submit-feedback.error { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
 
-    /* Side Content */
-    .side-content { display: flex; flex-direction: column; gap: 32px; }
-    .status-card .status-info { padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
-    .status-item { display: flex; justify-content: space-between; align-items: center; }
-    .status-item .label { color: #64748b; font-size: 0.875rem; }
-    .status-item .value { font-weight: 700; color: var(--secondary); }
-    .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-    .badge.success { background: #dcfce7; color: #15803d; }
-    .text-success { color: #15803d; }
+    .card-header-flex { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .card-header-flex h3 { font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 10px; margin: 0; }
+    .view-link { font-size: 0.8rem; color: #64748b; font-weight: 600; }
+    .view-all-btn { font-size: 0.75rem; background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 6px; color: #475569; font-weight: 700; cursor: pointer; }
+
+    .recent-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .incident-item { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; border: 1px solid transparent; transition: all 0.2s; }
+    .incident-item:hover { background: #f8fafc; border-color: #e2e8f0; }
+    .incident-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .incident-icon.fire { background: #fee2e2; color: #dc2626; }
+    .incident-icon.medical { background: #dcfce7; color: #15803d; }
+    .incident-icon.crime { background: #f1f5f9; color: #4b5563; }
+    .incident-icon.flood { background: #e0f2fe; color: #0284c7; }
+    .incident-primary { font-weight: 700; color: #1e293b; font-size: 0.9rem; margin-bottom: 2px; }
+    .incident-secondary { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+    .incident-status-tag { margin-left: auto; font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: #f1f5f9; color: #64748b; }
+    .incident-status-tag.active { background: #dcfce7; color: #15803d; }
+
+    /* Activity History Styles Restored */
+    .activity-card { margin-bottom: 40px; }
     .activity-list { padding: 16px 24px 32px; display: flex; flex-direction: column; gap: 12px; }
     .activity-item { display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: 16px; border: 1px solid #f1f5f9; transition: all 0.3s; }
     .activity-item:hover { background: #f8fafc; border-color: #e2e8f0; }
-    .activity-icon { width: 32px; height: 32px; border-radius: 8px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; }
+    .activity-icon { width: 32px; height: 32px; border-radius: 8px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .activity-icon.pending { background: #fef3c7; color: #d97706; }
     .activity-icon.resolved { background: #dcfce7; color: #15803d; }
     .activity-details { flex: 1; display: flex; flex-direction: column; }
@@ -377,6 +669,64 @@ import {
     .status-tag { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
     .status-tag.pending { color: #d97706; }
     .empty-state { padding: 20px; text-align: center; color: #94a3b8; font-size: 0.875rem; font-style: italic; }
+
+    .activity-row { display: grid; grid-template-columns: 100px 1fr 100px 100px; padding: 12px 16px; align-items: center; gap: 16px; border-bottom: 1px solid #f1f5f9; }
+    .activity-row:last-child { border-bottom: none; }
+    .activity-type { font-weight: 800; color: #1e293b; font-size: 0.8rem; }
+    .activity-loc { font-size: 0.85rem; color: #475569; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-date { font-size: 0.75rem; color: #94a3b8; }
+    .activity-status-pill { font-size: 0.65rem; font-weight: 800; text-align: center; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+    .activity-status-pill.green { background: #ecfdf5; color: #059669; }
+    .activity-status-pill.yellow { background: #fffbeb; color: #d97706; }
+
+    .summary-card { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .summary-stat { display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
+    .stat-value { font-size: 2.25rem; font-weight: 900; color: #1e293b; }
+    .summary-details { display: flex; flex-direction: column; gap: 8px; }
+    .info-tag { font-size: 0.8rem; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; color: #4b5563; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .severity-indicator { font-size: 0.7rem; font-weight: 800; padding: 6px; border-radius: 6px; text-align: center; border: 1.5px solid #d1fae5; color: #059669; }
+    .severity-indicator.severe { border-color: #fee2e2; color: #dc2626; }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 24px; text-align: center; }
+    .insight-stat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .insight-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; }
+    .insight-circle.blue { border: 3px solid #3b82f6; color: #3b82f6; }
+    .insight-circle.green { border: 3px solid #10b981; color: #10b981; }
+    .insight-circle.gray { border: 3px solid #94a3b8; color: #94a3b8; }
+    .insight-stat span { font-size: 0.7rem; font-weight: 700; color: #64748b; }
+    .insight-footer { text-align: center; padding-bottom: 20px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; font-style: italic; }
+
+    .mini-map-card { position: relative; cursor: pointer; border-radius: 20px; border: none; overflow: hidden; }
+    .map-overlay { position: absolute; bottom: 12px; left: 12px; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); padding: 6px 16px; border-radius: 10px; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+    .dashboard-footer { text-align: center; padding: 20px; color: #94a3b8; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; font-style: italic; }
+
+    /* Report Page V2 */
+    .page-title { font-size: 1.875rem; font-weight: 800; color: #1e293b; margin: 0 0 4px 0; }
+    .report-card-v2 { padding: 12px; border-radius: 28px; border: 1.5px solid #e2e8f0; background: white; }
+    .type-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px; }
+    .type-btn { padding: 16px; border-radius: 14px; border: 1.5px solid #f1f5f9; background: #f8fafc; font-weight: 800; font-size: 0.8rem; text-align: center; cursor: pointer; transition: all 0.2s; color: #64748b; }
+    .type-btn:hover { border-color: #cbd5e1; background: #f1f5f9; }
+    .type-btn.selected { background: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); }
+    .input-with-icon { position: relative; }
+    .field-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .input-with-icon .form-control { padding-left: 44px; }
+    .report-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9; }
+    .back-btn { background: transparent; border: 1.5px solid #e2e8f0; color: #64748b; padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+    .submit-btn-premium { background: #dc2626; color: white; border: none; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); transition: all 0.2s; }
+    .submit-btn-premium:hover:not(:disabled) { background: #b91c1c; transform: translateY(-2px); }
+    .submit-btn-premium:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media (max-width: 1024px) {
+      .safety-grid, .dashboard-main-grid { grid-template-columns: 1fr; }
+      .quick-actions-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .quick-actions-grid { grid-template-columns: 1fr; }
+      .activity-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .activity-date { display: none; }
+    }
 
     /* ===== NOTIFICATIONS PAGE ===== */
     .notif-page { max-width: 720px; }
@@ -428,6 +778,17 @@ import {
     .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-cancel { display: flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #64748b; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
     .btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+    /* Toaster Styles */
+    .toaster-container { position: fixed; top: 24px; right: 24px; z-index: 9999; animation: slideIn 0.3s ease-out; }
+    .toaster { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 12px; background: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-left: 4px solid #64748b; color: #1e293b; font-weight: 600; min-width: 300px; }
+    .toaster.success { border-left-color: #10b981; }
+    .toaster.error { border-left-color: #ef4444; }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   `]
 })
 export class UserDashboardComponent implements OnInit, OnDestroy {
@@ -453,9 +814,16 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
   };
 
   report = { type: 'FIRE', location: '', description: '' };
-  submissions = [
-    { type: 'FLOOD', location: 'Main Street', time: 'Yesterday', status: 'RESOLVED' }
-  ];
+  submissions: any[] = [];
+  toaster = { show: false, message: '', type: 'success' };
+
+  // New Dashboard Logic State
+  safetyLevel: 'SAFE' | 'MODERATE' | 'HIGH RISK' = 'SAFE';
+  nearbyIncidents: any[] = [];
+  insights = { received: 0, acknowledged: 0, ignored: 0 };
+  smartSuggestion = 'Stay informed. Keep emergency contacts ready.';
+  lastAlertType = '';
+  lastAlertSeverity = '';
 
   constructor(
     private authService: AuthService,
@@ -468,8 +836,14 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
     this.currentUser = this.authService.getCurrentUser();
     this.loadProfileFromServer();
     this.loadUnreadCount();
-    // Poll unread count every 30s
-    this.pollInterval = setInterval(() => this.loadUnreadCount(), 30000);
+    this.loadMySubmissions();
+    this.loadRecentVerifiedIncidents();
+    // Poll updates every 30s
+    this.pollInterval = setInterval(() => {
+      this.loadUnreadCount();
+      this.loadMySubmissions();
+      this.loadRecentVerifiedIncidents();
+    }, 30000);
   }
 
   ngOnDestroy() {
@@ -479,7 +853,10 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
   // ---- Notifications ----
   loadUnreadCount() {
     this.disasterService.getUnreadCount().subscribe({
-      next: (r) => this.unreadCount = r.unreadCount,
+      next: (r) => {
+        this.unreadCount = r.unreadCount;
+        this.updateSafetyStatus();
+      },
       error: () => { }
     });
   }
@@ -489,9 +866,73 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
       next: (list) => {
         this.notifications = list;
         this.unreadCount = list.filter((n: any) => n.status === 'SENT').length;
+        if (list.length > 0) {
+          const last = list[0];
+          this.lastAlertType = last.disasterType || 'ALERT';
+          this.lastAlertSeverity = last.severity || 'MODERATE';
+          
+          // Simplified Insight Logic
+          this.insights.received = list.length;
+          this.insights.acknowledged = list.filter((n: any) => n.status === 'READ').length;
+          this.insights.ignored = list.filter((n: any) => n.status === 'SENT' && (Date.now() - new Date(n.sentAt).getTime() > 86400000)).length;
+        }
+        this.updateSafetyStatus();
       },
       error: () => { }
     });
+  }
+
+  updateSafetyStatus() {
+    if (this.unreadCount > 5) {
+      this.safetyLevel = 'HIGH RISK';
+      this.smartSuggestion = '⚠️ HIGH RISK: Multiple active threats detected in your region. Secure your home and avoid low-lying areas.';
+    } else if (this.unreadCount > 0) {
+      this.safetyLevel = 'MODERATE';
+      this.smartSuggestion = '🔔 ATTENTION: Local alerts are active. Review notifications and stay prepared for potential evacuations.';
+    } else {
+      this.safetyLevel = 'SAFE';
+      this.smartSuggestion = '🛡️ ALL CLEAR: No active disasters in your immediate vicinity. Ensure your emergency kit is up to date.';
+    }
+  }
+
+  loadRecentVerifiedIncidents() {
+    this.disasterService.getAllDisasters().subscribe({
+      next: (list) => {
+        // Filter for verified disasters in the same region or globally prominent ones
+        this.nearbyIncidents = list
+          .filter(d => d.status === 'VERIFIED')
+          .slice(0, 3)
+          .map(d => ({
+            ...d,
+            distance: (Math.random() * 5 + 1).toFixed(1) // Mock distance for UI
+          }));
+      }
+    });
+  }
+
+  getIncidentIcon(type: string): string {
+    switch (type?.toUpperCase()) {
+      case 'FIRE': return 'flame';
+      case 'FLOOD': return 'waves';
+      case 'MEDICAL': return 'activity';
+      case 'CRIME': return 'shield-alert';
+      default: return 'triangle-alert';
+    }
+  }
+
+  callEmergency() {
+    alert('Dialing emergency services... (Simulation)');
+    window.open('tel:108');
+  }
+
+  shareLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        this.showToaster(`Location verified: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`, 'success');
+      }, () => {
+        this.showToaster('Unable to access location services.', 'error');
+      });
+    }
   }
 
   markRead(n: any) {
@@ -499,6 +940,7 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         n.status = 'READ';
         this.unreadCount = Math.max(0, this.unreadCount - 1);
+        this.updateSafetyStatus();
       },
       error: () => { }
     });
@@ -507,6 +949,44 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
   markAllRead() {
     const unread = this.notifications.filter(n => n.status === 'SENT');
     unread.forEach(n => this.markRead(n));
+  }
+
+  loadMySubmissions() {
+    this.disasterService.getMyHelpRequests().subscribe({
+      next: (list) => {
+        this.submissions = list.map(hr => ({
+          type: this.extractType(hr.description),
+          location: hr.locationLabel || 'Unknown',
+          time: this.formatTime(hr.createdAt),
+          status: hr.status
+        }));
+      },
+      error: () => { }
+    });
+  }
+
+  private extractType(desc: string): string {
+    const match = desc.match(/^\[(.*?)\]/);
+    return match ? match[1] : 'INCIDENT';
+  }
+
+  private formatTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffMin < 1440) return `${Math.floor(diffMin/60)}h ago`;
+    return date.toLocaleDateString();
+  }
+
+  showToaster(message: string, type: 'success' | 'error' = 'success') {
+    this.toaster = { show: true, message, type };
+    setTimeout(() => {
+      this.toaster.show = false;
+    }, 4000);
   }
 
   // ---- Profile ----
@@ -600,19 +1080,14 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
     this.disasterService.submitIncidentReport(payload).subscribe({
       next: (res) => {
         this.submitting = false;
-        this.submitSuccess = '✅ Emergency Report Submitted! Help is on the way.';
-        this.submissions.unshift({
-          type: this.report.type,
-          location: this.report.location,
-          time: 'Just now',
-          status: 'PENDING'
-        });
+        this.showToaster('Emergency Report Submitted! Help is on the way.', 'success');
+        this.loadMySubmissions();
         this.report = { type: 'FIRE', location: '', description: '' };
-        setTimeout(() => this.submitSuccess = '', 5000);
+        this.activeTab = 'dashboard';
       },
       error: (err) => {
         this.submitting = false;
-        this.submitError = err?.error?.message || '❌ Failed to submit report. Please try again.';
+        this.showToaster(err?.error?.message || 'Failed to submit report. Please try again.', 'error');
       }
     });
   }

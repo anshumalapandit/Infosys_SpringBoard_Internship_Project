@@ -45,8 +45,8 @@ public class DisasterEventController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DisasterEvent> updateStatus(
-            @PathVariable Long id,
-            @RequestParam DisasterStatus status) {
+            @PathVariable("id") Long id,
+            @RequestParam("status") DisasterStatus status) {
         DisasterEvent event = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Disaster event not found"));
         event.setStatus(status);
@@ -56,7 +56,7 @@ public class DisasterEventController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DisasterEvent> updateEvent(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody DisasterEvent eventDetails) {
         DisasterEvent event = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Disaster event not found"));

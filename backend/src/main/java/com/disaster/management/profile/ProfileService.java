@@ -56,6 +56,10 @@ public class ProfileService {
             user.setLatitude(request.getLatitude());
         if (request.getLongitude() != null)
             user.setLongitude(request.getLongitude());
+        if (request.getBadgeNumber() != null)
+            user.setBadgeNumber(request.getBadgeNumber());
+        if (request.getResponderType() != null)
+            user.setResponderType(request.getResponderType());
 
         userRepository.save(user);
         return mapToProfileResponse(user);

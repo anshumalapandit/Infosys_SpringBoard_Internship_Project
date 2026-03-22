@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { finalize } from 'rxjs';
 
@@ -14,7 +14,7 @@ import {
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [CommonModule, FormsModule, LucideAngularModule, RouterLink],
+    imports: [CommonModule, FormsModule, LucideAngularModule],
     templateUrl: './login.component.html',
     styleUrl: './login.component.css'
 })

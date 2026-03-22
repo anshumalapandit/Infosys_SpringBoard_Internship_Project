@@ -26,7 +26,7 @@ public class Notification {
         private Long id;
 
         /** The disaster event this notification is about */
-        @Column(nullable = false)
+        @Column(nullable = true)
         private Long disasterId;
 
         /** The recipient user */

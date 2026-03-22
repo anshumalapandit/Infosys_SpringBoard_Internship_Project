@@ -15,8 +15,8 @@
    - [Milestone 1 — Core Authentication & Role System](#milestone-1--core-authentication--role-system)
    - [Milestone 2 — Admin Dashboard & Disaster Management](#milestone-2--admin-dashboard--disaster-management)
    - [Milestone 3 — Alert Broadcasting & SSE Real-Time Notifications](#milestone-3--alert-broadcasting--sse-real-time-notifications)
-   - [Milestone 4 — Responder Dashboard & Alert Acknowledgment ⏳ *(Pending)*](#milestone-4--responder-dashboard--alert-acknowledgment-pending)
-   - [Milestone 5 — Citizen Help Requests ⏳ *(Pending)*](#milestone-5--citizen-help-requests-pending)
+   - [Milestone 4 — Rescue Operations Module ✅](#milestone-4--rescue-operations-module-)
+   - [Milestone 5 — Analytics & Reporting ✅](#milestone-5--analytics--reporting)
 6. [Project Structure](#project-structure)
 7. [Setup & Running Locally](#setup--running-locally)
 8. [API Endpoints](#api-endpoints)
@@ -246,78 +246,71 @@ EventSource receives "ALERT" event in real-time
 
 ---
 
-### Milestone 4 — Responder Dashboard & Alert Acknowledgment ⏳ *(Pending — Yet to Implement)*
+### Milestone 4 — Rescue Operations Module ✅
 
-> **🚧 Status: Not yet implemented.** This milestone is planned for the next phase of development.
+**Goal:** Establish a robust Rescue Operations system for managing and tracking emergency responses.
 
-**Goal:** Build a dedicated Responder Dashboard that receives live alerts via SSE and allows responders to confirm their readiness.
+#### ✅ What was built:
+- **Rescue Task Management** — Admins can create and assign rescue tasks to responders.
+- **Responder Workflow** — Responders can view assigned tasks and update their status (`ACCEPTED`, `EN_ROUTE`, `ON_SITE`, `COMPLETED`).
+- **Mission Reports** — Responders can submit detailed reports upon completion of a task.
+- **Real-time Tracking** — Admins can monitor the status of all active rescue operations.
+- **`RescueTask` Entity** — records assignments, statuses, and links to disasters.
+- **`MissionReport` Entity** — stores outcomes, casualties, and resources used.
 
-#### 📋 Planned Features:
-- **Responder Dashboard UI** — minimal, action-focused interface for emergency responders
-- **SSE Alert Reception** — responder's frontend subscribes to `/api/notifications/stream` and receives `ALERT` events in real-time
-- **"Confirm Receipt" Button** — responder acknowledges an alert with a single click
-- **Alert Acknowledgment API** (`POST /api/responder/alerts/{alertId}/acknowledge`) — saves acknowledgment to DB
-- **`AlertAcknowledgment` Entity** — stores `responderId`, `alertId`, `acknowledgedAt`, `readinessStatus`
-- **`ReadinessStatus` Enum** — `READY`, `UNAVAILABLE`, `EN_ROUTE`
-- **Admin sees readiness count** — Admin dashboard reflects how many responders have confirmed receipt, updated via SSE
-- **Graceful empty-state handling** — if notification payload is empty/malformed, UI shows fallback message
-
-#### 📂 Planned Files:
+#### 📂 Key Files:
 ```
 backend/src/main/java/com/disaster/management/
 ├── controllers/
-│   └── ResponderAlertController.java       ← Acknowledge endpoint (planned)
+│   ├── AdminRescueTaskController.java
+│   ├── ResponderRescueTaskController.java
+│   └── MissionReportController.java
 ├── services/
-│   └── ResponderAlertService.java          ← Acknowledgment processing (planned)
+│   ├── RescueTaskService.java
+│   └── MissionReportService.java
 ├── entities/
-│   ├── AlertAcknowledgment.java            ← Acknowledgment record (planned)
-│   └── ReadinessStatus.java               ← Enum: READY, UNAVAILABLE, EN_ROUTE (planned)
-├── repositories/
-│   └── AlertAcknowledgmentRepository.java (planned)
-
-frontend/src/app/features/responder/
-└── dashboard/dashboard.component.ts        ← Responder Dashboard (planned)
+│   ├── RescueTask.java
+│   ├── RescueTaskStatus.java
+│   └── MissionReport.java
 ```
 
 ---
 
-### Milestone 5 — Citizen Help Requests ⏳ *(Pending — Yet to Implement)*
+### Milestone 5 — Analytics & Reporting ✅
 
-> **🚧 Status: Not yet implemented.** This milestone is planned after Milestone 4 is complete.
+**Goal:** Generate data-driven insights to evaluate system performance and disaster response efficiency.
 
-**Goal:** Allow citizens to submit emergency help requests that appear on the Admin Dashboard in real-time.
+#### ✅ What was built:
+- **Disaster Analytics Dashboard**:
+  - Live visualization of disaster trends categorized by type and month.
+  - Regional resolution efficiency tracking to compare performance across different areas.
+- **High-Risk Area Identification**:
+  - Implemented `GET /api/admin/analytics/high-risk-areas` to identify top 5 danger zones based on historical disaster frequency and severity.
+- **Notification Insights**:
+  - Real-time tracking of user engagement levels for broadcasted alerts.
+  - Calculated metrics for alerts Acknowledged vs. Ignored.
+- **Responder Performance Metrics**:
+  - Aggregated task completion rates and average response time calculations.
+  - Activity monitoring to ensure resource optimization.
+- **Discovery & Awareness Suite**:
+  - **High-Fidelity Mission Page**: A dedicated page outlining Sentinel's 6 core goals (Real-Time Connectivity, Zero-Delay Alerts, etc.).
+  - **Safety Awareness Hub**: Practical, high-contrast educational cards for citizens during "Safe" periods.
 
-#### 📋 Planned Features:
-- **Citizen Dashboard UI** — Simple form to submit help requests
-- **Submit Help Request** (`POST /api/citizen/help-request`) — stores request with emergency type, description, and location
-- **Admin View: Citizen Help Requests** — dedicated section in Admin Dashboard listing all active help requests
-- **`HelpRequest` Entity** — stores `citizenId`, `emergencyType`, `description`, `locationLabel`, `status`, `assignedResponderId`, `distanceToResponderKm`, `createdAt`
-- **`HelpRequestStatus` Enum** — `PENDING`, `ASSIGNED`, `COMPLETED`
-- **Emergency Type categorization** — FIRE, FLOOD, MEDICAL, CRIME, OTHER (with color-coded chips)
-- **Admin can refresh** the help request list with a single button
-- **Distance display** — shows proximity of nearest responder if assigned
-- **New request badge** — Admin's sidebar nav item shows a count badge when new help requests arrive
-
-#### 📂 Planned Files:
+#### 📂 Key Files:
 ```
 backend/src/main/java/com/disaster/management/
 ├── controllers/
-│   └── CitizenController.java              ← Submit & retrieve help requests (planned)
-├── services/
-│   └── CitizenHelpRequestService.java     ← Service logic (planned)
-├── entities/
-│   ├── HelpRequest.java                   ← Help request entity (planned)
-│   └── HelpRequestStatus.java            ← Enum: PENDING, ASSIGNED, COMPLETED (planned)
+│   └── AnalyticsController.java           ← Analytics & High-Risk endpoints
 ├── dto/
-│   ├── HelpRequestDTO.java                 ← Input DTO (planned)
-│   ├── HelpRequestResponse.java            ← Output DTO (planned)
-│   └── HelpRequestAdminView.java          ← Admin view DTO (planned)
-└── repositories/
-    └── HelpRequestRepository.java         ← (planned)
+│   ├── DisasterAnalyticsDTO.java          ← Aggregation DTOs
+│   ├── ResponderPerformanceDTO.java
+│   └── HighRiskAreaDTO.java
+└── services/
+    └── AnalyticsService.java              ← Complex aggregation & grouping logic
 
 frontend/src/app/features/
-├── user/dashboard/dashboard.component.ts   ← Citizen Dashboard (planned)
-└── admin/dashboard/dashboard.component.ts  ← Help Requests section (planned)
+├── mission/mission.component.ts           ← New Mission Page
+└── admin/analytics/                       ← Analytics Dashboard UI
 ```
 
 ---
@@ -512,8 +505,10 @@ help_requests
 | 🗂️ Live Incidents Table | Filterable table with severity badges and action dropdowns |
 | 📡 Broadcast Modal | Broadcast alerts with custom message and region targeting |
 | 🔔 SSE Real-Time Alerts | Push notifications delivered instantly to open dashboards |
-| ⏳ Responder Acknowledgment | *(Pending — Milestone 4)* Responders confirm receipt with a single click |
-| ⏳ Citizen Help Requests | *(Pending — Milestone 5)* Citizens submit emergencies; admins see them with type chips and status |
+| ✅ Responder Interaction | Multi-stage task acknowledgement and real-time status updates |
+| ✅ Citizen Emergency Port | Unified dashboard for incident reporting and help request tracking |
+| ✅ Mission & Vision Hub | High-fidelity page outlining the platform's 6 technical goals |
+| ✅ Analytics Engine | Data-driven dashboards for high-risk areas and response metrics |
 
 ---
 

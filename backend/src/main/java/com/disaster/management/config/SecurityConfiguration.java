@@ -39,7 +39,7 @@ public class SecurityConfiguration {
                                                 // Allow auth, docs, and SSE ASYNC dispatch frames
                                                 .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                                                 .requestMatchers("/api/v1/auth/**", "/error", "/api-docs/**",
-                                                                "/swagger-ui/**", "/swagger-ui.html")
+                                                                "/swagger-ui/**", "/swagger-ui.html", "/uploads/**", "/api/files/**")
                                                 .permitAll()
                                                 // SSE stream requires authentication but is cross-role
                                                 .requestMatchers("/api/notifications/stream").authenticated()

@@ -15,4 +15,8 @@ public interface DisasterEventRepository extends JpaRepository<DisasterEvent, Lo
 
         long countBySeverityAndStatus(com.disaster.management.entities.SeverityLevel severity,
                         DisasterStatus status);
+
+        @org.springframework.transaction.annotation.Transactional
+        @org.springframework.data.jpa.repository.Modifying
+        void deleteByStatus(DisasterStatus status);
 }

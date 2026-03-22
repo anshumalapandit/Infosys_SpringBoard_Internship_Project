@@ -33,6 +33,23 @@ export interface BroadcastResult {
     message: string;
 }
 
+export interface RescueTaskDTO {
+    taskId: number;
+    disasterId?: number;
+    zoneName: string;
+    description: string;
+    status: string;
+    disasterType?: string;
+    latitude: number;
+    longitude: number;
+    assignedAt: string;
+    responderName?: string;
+    responderEmail?: string;
+    reportSubmitted?: boolean;
+    reportNotes?: string;
+    imageUrls?: string[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -125,6 +142,16 @@ export class DisasterService {
         return this.http.get<any[]>(`${this.responderUrl}/alerts/my-notifications`);
     }
 
+    /** Responder: delete a specific notification */
+    deleteNotification(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.responderUrl}/alerts/notifications/${id}`);
+    }
+
+    /** Responder: clear all notifications */
+    clearAllNotifications(): Observable<void> {
+        return this.http.delete<void>(`${this.responderUrl}/alerts/notifications/clear-all`);
+    }
+
     /** Responder: acknowledge an alert */
     acknowledgeAlert(disasterId: number, readinessStatus: string, notes?: string): Observable<any> {
         return this.http.post<any>(`${this.responderUrl}/alerts/${disasterId}/acknowledge`, {
@@ -152,6 +179,11 @@ export class DisasterService {
         return this.http.post<any>('http://localhost:8080/api/citizen/help-request', payload);
     }
 
+    /** Citizen: get my own help requests */
+    getMyHelpRequests(): Observable<any[]> {
+        return this.http.get<any[]>('http://localhost:8080/api/citizen/help-request/my-requests');
+    }
+
     /** Admin: get all citizen help requests */
     getAdminHelpRequests(): Observable<any[]> {
         return this.http.get<any[]>(`${this.adminUrl}/dashboard/help-requests`);
@@ -165,6 +197,68 @@ export class DisasterService {
     /** Responder: complete an ASSIGNED help request */
     completeHelpRequest(id: number): Observable<any> {
         return this.http.post<any>(`${this.responderUrl}/help-requests/${id}/complete`, {});
+    }
+
+    assignRescueTask(payload: { disasterId: number | null, responderId: number, description: string, helpRequestId?: number }): Observable<RescueTaskDTO> {
+        return this.http.post<RescueTaskDTO>(`${this.adminUrl}/rescue/assign`, payload);
+    }
+
+    /** Admin: get all rescue tasks */
+    getAllRescueTasks(): Observable<RescueTaskDTO[]> {
+        return this.http.get<RescueTaskDTO[]>(`${this.adminUrl}/rescue/tasks`);
+    }
+
+    /** Helper: get verified disasters for dropdown */
+    getVerifiedDisasters(): Observable<DisasterEvent[]> {
+        return this.http.get<DisasterEvent[]>(`${this.apiUrl}/verified`);
+    }
+
+    /** Responder: get my assigned rescue tasks */
+    getResponderTasks(): Observable<RescueTaskDTO[]> {
+        return this.http.get<RescueTaskDTO[]>(`${this.responderUrl}/tasks`);
+    }
+
+    /** Responder: get all active rescue tasks for map */
+    getActiveRescueTasks(): Observable<RescueTaskDTO[]> {
+        return this.http.get<RescueTaskDTO[]>(`${this.responderUrl}/rescue/active-tasks`);
+    }
+
+    /** Responder: update rescue task status */
+    updateRescueTaskStatus(taskId: number, status: string): Observable<RescueTaskDTO> {
+        return this.http.post<RescueTaskDTO>(`${this.responderUrl}/tasks/${taskId}/status?status=${status}`, {});
+    }
+
+    /** Admin: send internal message to responder */
+    sendResponderMessage(responderId: number, message: string, priority: string): Observable<void> {
+        return this.http.post<void>(`${this.adminUrl}/dashboard/responders/${responderId}/message`, {
+            message,
+            priority
+        });
+    }
+
+    submitMissionReport(payload: { taskId: number, notes: string, imageUrls: string[] }): Observable<any> {
+        return this.http.post<any>(`${this.responderUrl}/reports/submit`, payload);
+    }
+
+    uploadFile(file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post<any>(`http://localhost:8080/api/files/upload`, formData);
+    }
+
+    /** Responder: get mission report */
+    getMissionReport(taskId: number): Observable<any> {
+        return this.http.get<any>(`${this.responderUrl}/reports/task/${taskId}`);
+    }
+
+    /** Responder: get my mission reports */
+    getMyMissionReports(): Observable<any[]> {
+        return this.http.get<any[]>(`${this.responderUrl}/reports/my-reports`);
+    }
+
+    /** User: update my profile */
+    updateProfile(profileData: any): Observable<any> {
+        return this.http.put<any>('http://localhost:8080/api/profile', profileData);
     }
 }
 

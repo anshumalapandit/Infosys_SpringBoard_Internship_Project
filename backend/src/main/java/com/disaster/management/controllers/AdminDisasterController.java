@@ -84,6 +84,7 @@ public class AdminDisasterController {
         DisasterEvent event = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Disaster not found"));
         event.setStatus(DisasterStatus.RESOLVED);
+        event.setResolvedAt(LocalDateTime.now());
         return ResponseEntity.ok(repository.save(event));
     }
 

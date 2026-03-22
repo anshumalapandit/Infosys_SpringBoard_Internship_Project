@@ -52,7 +52,7 @@ public class AdminAlertController {
      */
     @GetMapping("/disaster/{disasterId}")
     public ResponseEntity<List<Notification>> getNotificationsForDisaster(
-            @PathVariable Long disasterId) {
+            @PathVariable("disasterId") Long disasterId) {
         return ResponseEntity.ok(notificationRepository.findByDisasterId(disasterId));
     }
 
@@ -61,7 +61,7 @@ public class AdminAlertController {
      */
     @GetMapping("/acks/{disasterId}")
     public ResponseEntity<List<AlertAcknowledgment>> getAcknowledgments(
-            @PathVariable Long disasterId) {
+            @PathVariable("disasterId") Long disasterId) {
         return ResponseEntity.ok(responderAlertService.getAcknowledgmentsForDisaster(disasterId));
     }
 
@@ -70,7 +70,7 @@ public class AdminAlertController {
      */
     @GetMapping("/acks/{disasterId}/ready-count")
     public ResponseEntity<Map<String, Long>> getReadyResponderCount(
-            @PathVariable Long disasterId) {
+            @PathVariable("disasterId") Long disasterId) {
         long count = responderAlertService.countReadyResponders(disasterId);
         return ResponseEntity.ok(Map.of("readyResponders", count));
     }

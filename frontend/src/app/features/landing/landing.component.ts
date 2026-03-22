@@ -30,7 +30,7 @@ import {
         </div>
         <ul class="nav-links">
           <li><a href="#features" (click)="scrollToSection($event, 'features')">Features</a></li>
-          <li><a href="#mission" (click)="scrollToSection($event, 'features')">Mission</a></li>
+          <li><a routerLink="/mission">Mission</a></li>
           <li><a href="#news" (click)="scrollToSection($event, 'features')">News</a></li>
           <li><a routerLink="/contact">Contact</a></li>
         </ul>
@@ -188,7 +188,7 @@ import {
             <div class="footer-column">
               <h4>Platform</h4>
               <a href="#features">Features</a>
-              <a href="#mission">Mission</a>
+              <a routerLink="/mission">Mission</a>
               <a href="#responders">For Responders</a>
             </div>
             <div class="footer-column">

@@ -40,5 +40,6 @@ public class DisasterEvent {
     private DisasterStatus status;
 
     private LocalDateTime createdAt;
+    private LocalDateTime resolvedAt;
     private boolean broadcastAlertSent;
 }

@@ -2,8 +2,9 @@ import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { DisasterService, DisasterEvent, DashboardStats, BroadcastResult } from '../../../core/services/disaster.service';
+import { DisasterService, DisasterEvent, DashboardStats, BroadcastResult, RescueTaskDTO } from '../../../core/services/disaster.service';
 import { Router } from '@angular/router';
+import { AnalyticsComponent } from '../analytics/analytics.component';
 import {
   LucideAngularModule,
   Shield,
@@ -31,13 +32,17 @@ import {
   Eye,
   RotateCcw,
   XCircle,
-  Trash2
+  Trash2,
+  ClipboardList,
+  MapPin,
+  UserPlus,
+  Mail
 } from 'lucide-angular';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, AnalyticsComponent],
   template: `
     <div class="monitor-panel">
       <!-- Sidebar -->
@@ -56,10 +61,6 @@ import {
               <lucide-icon name="layout-dashboard" [size]="18"></lucide-icon>
               <span>Monitoring</span>
             </li>
-            <li class="nav-item">
-              <lucide-icon name="siren" [size]="18"></lucide-icon>
-              <span>Disasters</span>
-            </li>
             <li class="nav-item" [class.active]="currentView === 'ALERTS'" (click)="setView('ALERTS')">
               <lucide-icon name="radio" [size]="18"></lucide-icon>
               <span>Alert Management</span>
@@ -74,17 +75,13 @@ import {
                 <span class="nav-badge" *ngIf="newHelpRequestCount > 0">{{ newHelpRequestCount }}</span>
               </span>
             </li>
-          </ul>
-
-          <div class="nav-section">SYSTEM</div>
-          <ul class="nav-list">
-            <li class="nav-item">
-              <lucide-icon name="users" [size]="18"></lucide-icon>
-              <span>Units & Staff</span>
+            <li class="nav-item" [class.active]="currentView === 'RESCUE'" (click)="setView('RESCUE')">
+              <lucide-icon name="clipboard-list" [size]="18"></lucide-icon>
+              <span>Rescue Operations</span>
             </li>
-            <li class="nav-item">
-              <lucide-icon name="settings" [size]="18"></lucide-icon>
-              <span>Configuration</span>
+            <li class="nav-item" [class.active]="currentView === 'ANALYTICS'" (click)="setView('ANALYTICS')">
+              <lucide-icon name="activity" [size]="18"></lucide-icon>
+              <span>Analytics & Reports</span>
             </li>
           </ul>
         </nav>
@@ -420,20 +417,37 @@ import {
                     <div class="help-req-meta">
                       <span>📍 {{ req.locationLabel || 'Unknown Location' }}</span>
                       <span>🕐 {{ req.createdAt | date:'short' }}</span>
-                      <span *ngIf="req.assignedResponderId">👤 Responder assigned</span>
+                      <span *ngIf="req.status === 'ASSIGNED' || req.status === 'COMPLETED'">👤 Responder assigned</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="help-req-right">
-                  <span class="help-status-badge" [class.pending]="req.status === 'PENDING'"
-                        [class.assigned]="req.status === 'ASSIGNED'"
-                        [class.completed]="req.status === 'COMPLETED'">
+                  <!-- Only show status badge if PENDING; ASSIGNED/COMPLETED handled by the footer badge below -->
+                  <span *ngIf="req.status === 'PENDING'" class="help-status-badge pending">
                     {{ req.status }}
                   </span>
+
                   <span *ngIf="req.distanceToResponderKm" class="distance-chip">
                     {{ req.distanceToResponderKm | number:'1.1-1' }} km
                   </span>
+
+                  <!-- Action: Assign Responder (Only for PENDING) -->
+                  <button *ngIf="req.status === 'PENDING'" 
+                          class="btn-primary-action" 
+                          (click)="assignFromHelpRequest(req)"
+                          style="margin-top: 10px; font-size: 0.7rem; padding: 6px 12px; border-color: #2563eb; color: #2563eb; background: white; width: auto; align-self: flex-end;">
+                    <lucide-icon name="user-plus" [size]="14"></lucide-icon>
+                    <span>Assign Responder</span>
+                  </button>
+
+                  <!-- Status: Detailed Assigned/Completed Badge (For non-PENDING) -->
+                  <div *ngIf="req.status !== 'PENDING'" 
+                       class="assigned-badge-btn"
+                       style="margin-top: 5px; font-size: 0.7rem; padding: 6px 12px; border-radius: 8px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 700; display: flex; align-items: center; gap: 6px; width: auto; align-self: flex-end;">
+                    <lucide-icon name="check-circle" [size]="14"></lucide-icon>
+                    <span>{{ req.status === 'COMPLETED' ? 'COMPLETED' : 'ASSIGNED' }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -455,7 +469,7 @@ import {
               <div class="header-filters">
                 <div class="search-bar">
                   <lucide-icon name="search" [size]="16"></lucide-icon>
-                  <input type="text" placeholder="Search responders..." [(ngModel)]="responderSearchTerm" (input)="filterResponders()">
+                  <input type="text" placeholder="Search responders by name or unit..." [(ngModel)]="responderSearchTerm" (input)="filterResponders()">
                 </div>
               </div>
             </div>
@@ -469,7 +483,8 @@ import {
                     <th>Badge #</th>
                     <th>Region</th>
                     <th>Contact</th>
-                    <th class="text-right">Status</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -481,7 +496,7 @@ import {
                         </div>
                         <div class="user-info-cell">
                           <strong>{{ responder.fullName || responder.username }}</strong>
-                          <span>@{{ responder.username }}</span>
+                          <span style="font-size: 0.7rem; opacity: 0.7;">{{ responder.email }}</span>
                         </div>
                       </div>
                     </td>
@@ -489,13 +504,129 @@ import {
                     <td><code>{{ responder.badgeNumber || 'N/A' }}</code></td>
                     <td>{{ responder.region || 'CENTRAL' }}</td>
                     <td>{{ responder.phone || responder.email }}</td>
-                    <td class="text-right">
+                    <td>
                       <span class="status verified">ACTIVE</span>
+                    </td>
+                    <td class="text-right">
+                      <button type="button" class="btn-primary-action" (click)="sendMessage(responder)" 
+                              style="background: #f1f5f9; color: #2563eb; border-color: #dbeafe; padding: 6px 14px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; float: right;">
+                        <lucide-icon name="mail" [size]="14"></lucide-icon>
+                        <span>Message</span>
+                      </button>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <!-- Rescue Operations View -->
+          <section class="table-panel" *ngIf="currentView === 'RESCUE'">
+            <div class="panel-header">
+              <div class="title-with-icon">
+                <lucide-icon name="clipboard-list" [size]="18" style="color: #2563eb;"></lucide-icon>
+                <h2>Rescue Task Assignment</h2>
+              </div>
+            </div>
+
+            <div class="assignment-form-container" style="padding: 24px; border-bottom: 1px solid var(--border); background: #f8fafc;">
+              <div class="assignment-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="input-group">
+                  <label>Select Disaster Zone</label>
+                  <select class="form-select" [(ngModel)]="assignmentRequest.disasterId" style="margin-bottom: 0;">
+                    <option [value]="0">Choose active disaster...</option>
+                    <option [value]="null">Other / Field Operation (General Task)</option>
+                    <option *ngFor="let d of verifiedDisasters" [value]="d.id">
+                      {{ d.disasterType }} - {{ d.locationName }} ({{ d.severity }})
+                    </option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Assign Responder</label>
+                  <select class="form-select" [(ngModel)]="assignmentRequest.responderId" style="margin-bottom: 0;">
+                    <option [value]="0">Choose responder unit...</option>
+                    <option *ngFor="let r of responders" [value]="r.id">
+                      {{ r.fullName || r.username }} ({{ r.responderType }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-group" style="margin-top: 16px;">
+                <label>Task Description / Instructions</label>
+                <textarea class="form-input" [(ngModel)]="assignmentRequest.description" rows="2" placeholder="e.g. Conduct search and rescue near the river banks..." style="margin-bottom: 0;"></textarea>
+              </div>
+              <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+                <button type="button" class="btn-submit" 
+                        (click)="assignRescueTask()" 
+                        [disabled]="assigning || assignmentRequest.disasterId === 0 || !assignmentRequest.responderId || !assignmentRequest.description"
+                        style="background: #2563eb; display: flex; align-items: center; gap: 8px;">
+                  <lucide-icon name="user-plus" [size]="16"></lucide-icon>
+                  {{ assigning ? 'Assigning...' : 'Assign Rescue Task' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="panel-header" style="background: white; border-top: 4px solid #f1f5f9;">
+              <div class="title-with-icon">
+                <lucide-icon name="history" [size]="16"></lucide-icon>
+                <h3 style="font-size: 1rem;">Active Rescue Tasks</h3>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table *ngIf="rescueTasks.length > 0">
+                <thead>
+                  <tr>
+                    <th>Task ID</th>
+                    <th>Disaster Unit</th>
+                    <th>Assigned To</th>
+                    <th>Status</th>
+                    <th>Assigned At</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let task of rescueTasks">
+                    <td>#{{ task.taskId }}</td>
+                    <td>
+                      <strong>{{ task.disasterType }}</strong>
+                      <div style="font-size: 0.75rem; color: var(--text-dim);">{{ task.zoneName }}</div>
+                    </td>
+                    <td>
+                      <div class="type-cell">
+                        <div class="user-avatar-sm" style="width:24px; height:24px; font-size:0.7rem;">
+                           {{ (task.responderName || 'R')[0].toUpperCase() }}
+                        </div>
+                        <span>{{ task.responderName }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="status" [ngClass]="task.status.toLowerCase()">{{ task.status }}</span>
+                    </td>
+                    <td>{{ task.assignedAt | date:'short' }}</td>
+                    <td class="text-right">
+                      <button *ngIf="task.status === 'COMPLETED'" 
+                              (click)="viewMissionReport(task)"
+                              class="btn-primary-action"
+                              style="background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; padding: 4px 10px; font-size: 0.7rem; float: right;">
+                        <lucide-icon name="eye" [size]="14"></lucide-icon>
+                        View Report
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="empty-state" *ngIf="rescueTasks.length === 0" style="padding: 40px;">
+                <lucide-icon name="clipboard-list" [size]="32"></lucide-icon>
+                <p>No rescue tasks assigned yet.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Analytics View -->
+          <section class="table-panel" *ngIf="currentView === 'ANALYTICS'" style="background: transparent; border: none; box-shadow: none;">
+            <app-analytics></app-analytics>
           </section>
 
           <!-- Side Actions panel -->
@@ -534,6 +665,60 @@ import {
               </button>
             </div>
           </aside>
+        </div>
+
+        <!-- Mission Report View Modal (Admin) -->
+        <div class="modal-overlay" *ngIf="showReportModal" (click)="closeReportModal()" style="display: flex; align-items: center; justify-content: center;">
+          <div class="modal-card" (click)="$event.stopPropagation()" style="max-width: 600px; width: 100%; pointer-events: auto;">
+            <div class="modal-header">
+              <div class="title-with-icon">
+                <lucide-icon name="clipboard-list" [size]="20" style="color: #059669;"></lucide-icon>
+                <h2>Mission Report Details</h2>
+              </div>
+              <button class="close-btn" (click)="closeReportModal()">
+                <lucide-icon name="x" [size]="20"></lucide-icon>
+              </button>
+            </div>
+            
+            <div class="modal-body" *ngIf="selectedTaskForReport">
+              <div class="report-info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <div class="info-item">
+                  <span style="font-size: 0.75rem; color: #64748b; display: block; margin-bottom: 4px;">MISSION</span>
+                  <strong style="display: block;">{{ selectedTaskForReport.disasterType }} - {{ selectedTaskForReport.zoneName }}</strong>
+                </div>
+                <div class="info-item">
+                  <span style="font-size: 0.75rem; color: #64748b; display: block; margin-bottom: 4px;">RESPONDER</span>
+                  <strong style="display: block;">{{ selectedTaskForReport.responderName }}</strong>
+                </div>
+              </div>
+
+              <div class="report-section" style="margin-bottom: 24px;">
+                <h3 style="font-size: 0.875rem; color: #1e293b; margin-bottom: 8px;">Mission Notes</h3>
+                <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-style: italic; color: #475569; line-height: 1.6;">
+                  "{{ selectedTaskForReport.reportNotes || 'No notes provided.' }}"
+                </div>
+              </div>
+
+              <div class="report-section" *ngIf="selectedTaskForReport.imageUrls && selectedTaskForReport.imageUrls.length > 0">
+                <h3 style="font-size: 0.875rem; color: #1e293b; margin-bottom: 12px;">Visual Evidence</h3>
+                <div class="evidence-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
+                  <div *ngFor="let img of selectedTaskForReport.imageUrls" 
+                       style="aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; cursor: pointer; transition: transform 0.2s;"
+                       (click)="openImage(img)"
+                       class="evidence-thumb">
+                    <img [src]="img" alt="Evidence" style="width: 100%; height: 100%; object-fit: cover;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 20px 24px; display: flex; justify-content: flex-end; gap: 12px;">
+              <button class="btn-cancel" (click)="closeReportModal()">Close</button>
+              <button class="btn-submit" style="background: #059669; margin: 0;" (click)="resolveDisasterAndClose()">
+                Mark Operation Resolved
+              </button>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -591,6 +776,51 @@ import {
                     style="background:#2563eb; display:flex; align-items:center; gap:8px;">
               <lucide-icon name="send" [size]="15"></lucide-icon>
               {{ broadcasting ? 'Sending...' : 'Send Broadcast' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- ======================================== -->
+
+      <!-- ============ MESSAGE RESPONDER MODAL ============ -->
+      <div class="modal-overlay" *ngIf="showMessageModal" (click)="closeMessageModal()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-title-icon" style="background:#f0f9ff; color:#0369a1;">
+              <lucide-icon name="send" [size]="24"></lucide-icon>
+            </div>
+            <h2>Send Message to Responder</h2>
+            <button type="button" class="close-btn" (click)="closeMessageModal()">
+              <lucide-icon name="x" [size]="20"></lucide-icon>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="input-group">
+              <label>Responder Name</label>
+              <div style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
+                <div class="user-avatar-sm">
+                  {{ (selectedResponder?.fullName || selectedResponder?.username || 'R')[0].toUpperCase() }}
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                  <strong style="font-size:0.9rem;">{{ selectedResponder?.fullName || selectedResponder?.username }}</strong>
+                  <span style="font-size:0.75rem; color:#64748b;">{{ selectedResponder?.responderType }} staff</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top:16px;">
+              <label>Message</label>
+              <textarea class="form-input" [(ngModel)]="messageDraft" rows="5" placeholder="Enter your instructions or message..." style="margin-bottom:0;"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="closeMessageModal()">Cancel</button>
+            <button type="button" class="btn-submit" (click)="sendMessageToResponder()" [disabled]="sendingMessage || !messageDraft.trim()"
+                    style="background:#2563eb; display:flex; align-items:center; gap:8px;">
+              <lucide-icon name="send" [size]="15"></lucide-icon>
+              {{ sendingMessage ? 'Sending...' : 'Send Message' }}
             </button>
           </div>
         </div>
@@ -685,6 +915,13 @@ import {
           </div>
         </div>
       </div>
+      <!-- ======================================== -->
+
+      <!-- Toast Notification -->
+      <div class="toast-container" *ngIf="toast.show">
+        <lucide-icon name="check" class="toast-success-icon" [size]="18" style="color:#10b981;"></lucide-icon>
+        <span>{{ toast.message }}</span>
+      </div>
     </div>
   `,
   styles: [`
@@ -720,7 +957,7 @@ import {
     .logout-btn { width: 100%; padding: 10px; background: white; border: 1px solid var(--border); border-radius: 10px; color: var(--primary-red); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-weight: 600; }
 
     /* Main Content */
-    .main-content { margin-left: 260px; flex: 1; padding: 32px 40px; display: flex; flex-direction: column; gap: 32px; width: calc(100% - 260px); }
+    .main-content { margin-left: 260px; flex: 1; padding: 32px 24px; display: flex; flex-direction: column; gap: 32px; width: calc(100% - 260px); }
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
     .kpi-card { background: white; padding: 24px; border-radius: 16px; border: 1px solid var(--border); display: flex; align-items: center; gap: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .kpi-icon { padding: 12px; border-radius: 12px; display: flex; }
@@ -739,9 +976,10 @@ import {
 
     /* Table */
     .table-container { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    table { width: 100%; border-collapse: collapse; min-width: 950px; }
     th { padding: 16px 24px; background: #f8fafc; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border); text-align: left; }
     td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th.text-right, td.text-right { text-align: right; width: 160px; min-width: 160px; }
 
     /* Action Redesign */
     .action-hierarchy { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
@@ -938,6 +1176,42 @@ import {
     }
     .empty-state lucide-icon { margin-bottom: 20px; color: #e2e8f0; }
     .empty-state p { font-size: 0.95rem; font-weight: 500; }
+
+    /* New Premium Search & Filters */
+    .header-filters { display: flex; align-items: center; gap: 16px; margin-bottom: 2px; }
+    .search-bar { 
+      display: flex; align-items: center; gap: 10px; background: #f8fafc; 
+      border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 6px 14px; 
+      transition: all 0.2s; width: 300px;
+    }
+    .search-bar:focus-within { border-color: #2563eb; background: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08); width: 340px; }
+    .search-bar input { border: none; background: transparent; outline: none; font-size: 0.875rem; color: #1e293b; width: 100%; }
+    .search-bar lucide-icon { color: #94a3b8; }
+
+    /* Avatar Styles */
+    .user-avatar-sm { 
+      width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; 
+      color: #2563eb; display: flex; align-items: center; justify-content: center; 
+      font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+      border: 1px solid #dbeafe;
+    }
+    .user-info-cell { display: flex; flex-direction: column; gap: 2px; }
+    .user-info-cell strong { font-size: 0.9rem; color: var(--text-main); }
+    .user-info-cell span { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: white; padding: 12px 24px; border-radius: 12px;
+      display: flex; align-items: center; gap: 12px; z-index: 2000;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      animation: toast-in 0.3s ease-out;
+    }
+    @keyframes toast-in {
+      from { transform: translate(-50%, 20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .toast-success-icon { color: #10b981; }
   `]
 })
 export class AdminDashboardComponent implements OnInit, OnDestroy {
@@ -960,7 +1234,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   selectedLocation: string = 'ALL';
   uniqueLocations: string[] = [];
 
-  currentView: 'MONITORING' | 'RESPONDERS' | 'ALERTS' | 'HELP_REQUESTS' = 'MONITORING';
+  currentView: 'MONITORING' | 'RESPONDERS' | 'ALERTS' | 'HELP_REQUESTS' | 'RESCUE' | 'ANALYTICS' = 'MONITORING';
   alertTab: 'QUEUE' | 'HISTORY' = 'QUEUE';
 
   // Help Requests
@@ -989,6 +1263,27 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   broadcasting = false;
   broadcastResult: BroadcastResult | null = null;
   otherTypeSpecification: string = '';
+
+  // Message Modal
+  showMessageModal = false;
+  selectedResponder: any = null;
+  messageDraft = '';
+  sendingMessage = false;
+
+  // Toast
+  toast = { show: false, message: '' };
+
+  // Rescue Tasks
+  verifiedDisasters: DisasterEvent[] = [];
+  rescueTasks: RescueTaskDTO[] = [];
+  showReportModal = false;
+  selectedTaskForReport: RescueTaskDTO | null = null;
+  assignmentRequest: { disasterId: number | null, responderId: number, description: string, helpRequestId?: number } = { 
+    disasterId: 0, 
+    responderId: 0, 
+    description: '' 
+  };
+  assigning = false;
 
   manualEvent: Partial<DisasterEvent> = {
     title: '',
@@ -1080,12 +1375,95 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     return this.allDisasters.filter(d => d.broadcastAlertSent);
   }
 
-  setView(view: 'MONITORING' | 'RESPONDERS' | 'ALERTS' | 'HELP_REQUESTS') {
+  setView(view: 'MONITORING' | 'RESPONDERS' | 'ALERTS' | 'HELP_REQUESTS' | 'RESCUE' | 'ANALYTICS') {
     this.currentView = view;
     if (view === 'HELP_REQUESTS') {
       this.newHelpRequestCount = 0;
       this.loadHelpRequests();
     }
+    if (view === 'RESCUE') {
+      this.loadRescueData();
+    }
+  }
+
+  loadRescueData() {
+    // 1. Fetch verified disasters for dropdown
+    this.disasterService.getVerifiedDisasters().subscribe(data => {
+      this.verifiedDisasters = data || [];
+    });
+
+    // 2. Fetch responders (already loaded, but refresh anyway)
+    this.loadResponders();
+
+    this.disasterService.getAllRescueTasks().subscribe(tasks => {
+      this.rescueTasks = tasks || [];
+    });
+  }
+
+  viewMissionReport(task: RescueTaskDTO) {
+    this.selectedTaskForReport = task;
+    this.showReportModal = true;
+  }
+
+  closeReportModal() {
+    this.showReportModal = false;
+    this.selectedTaskForReport = null;
+  }
+
+  openImage(url: string) {
+    window.open(url, '_blank');
+  }
+
+  resolveDisasterAndClose() {
+    if (this.selectedTaskForReport && this.selectedTaskForReport.disasterId) {
+      this.disasterService.resolveDisaster(this.selectedTaskForReport.disasterId).subscribe({
+        next: () => {
+          alert('Disaster situation marked as RESOLVED.');
+          this.loadData();
+          this.closeReportModal();
+        },
+        error: (err) => console.error('Failed to resolve disaster:', err)
+      });
+    } else {
+      this.closeReportModal();
+    }
+  }
+
+  assignRescueTask() {
+    console.log('DEBUG: Assigning task payload:', this.assignmentRequest);
+    
+    // Explicitly check for 0 - which is the "Choose..." placeholder
+    if (this.assignmentRequest.disasterId === 0) {
+      alert('Please select a specific disaster zone or choose "Other / Field Operation".');
+      return;
+    }
+
+    if (!this.assignmentRequest.responderId) {
+      alert('Please select a responder unit.');
+      return;
+    }
+
+    if (!this.assignmentRequest.description) {
+      alert('Please provide a task description.');
+      return;
+    }
+
+    this.assigning = true;
+    this.disasterService.assignRescueTask(this.assignmentRequest).subscribe({
+      next: (newTask) => {
+        this.assigning = false;
+        alert('Rescue task assigned successfully!');
+        this.assignmentRequest = { disasterId: 0, responderId: 0, description: '', helpRequestId: undefined };
+        this.loadRescueData(); // Refresh rescue tasks
+        this.loadHelpRequests(); // Refresh help requests to show ASSIGNED status
+      },
+      error: (err) => {
+        this.assigning = false;
+        console.error('Assignment failed:', err);
+        const errorMsg = err?.error?.message || err?.message || 'Server error';
+        alert(`Failed to assign task: ${errorMsg}\n\nPlease ensure the disaster and responder are valid.`);
+      }
+    });
   }
 
   filterResponders() {
@@ -1370,6 +1748,72 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         console.error('Create failed:', err);
         this.stats.pendingReviews--;
         alert('Failed to create event. Please check required fields.');
+      }
+    });
+  }
+
+  sendMessage(responder: any) {
+    this.selectedResponder = responder;
+    this.messageDraft = 'Operation alert: Please check your active tasks.';
+    this.showMessageModal = true;
+  }
+
+  closeMessageModal() {
+    this.showMessageModal = false;
+    this.selectedResponder = null;
+    this.messageDraft = '';
+  }
+
+  sendMessageToResponder() {
+    if (!this.selectedResponder || !this.messageDraft.trim()) return;
+
+    this.sendingMessage = true;
+    this.disasterService.sendResponderMessage(
+      this.selectedResponder.id,
+      this.messageDraft,
+      'NORMAL' // Default priority
+    ).subscribe({
+      next: () => {
+        this.sendingMessage = false;
+        this.showToast('Message sent successfully.');
+        this.closeMessageModal();
+      },
+      error: (err) => {
+        this.sendingMessage = false;
+        console.error('Failed to send message:', err);
+        alert('Failed to send message. Please try again.');
+      }
+    });
+  }
+
+  showToast(message: string) {
+    this.toast = { show: true, message };
+    setTimeout(() => this.toast.show = false, 3000);
+  }
+
+  assignFromHelpRequest(req: any) {
+    // 1. Switch to Rescue view
+    this.currentView = 'RESCUE';
+    
+    // 2. Load necessary data 
+    this.loadRescueData();
+    
+    // 3. Auto-fill task info
+    this.assignmentRequest.description = `[EMERGENCY HELP] ${req.description} (Loc: ${req.locationLabel})`;
+    this.assignmentRequest.helpRequestId = req.id;
+    
+    // 4. Try to find a matching disaster event in the dropdown list
+    this.disasterService.getVerifiedDisasters().subscribe(disasters => {
+      this.verifiedDisasters = disasters || [];
+      const match = this.verifiedDisasters.find(d => 
+        (d.locationName && req.locationLabel && d.locationName.toLowerCase() === req.locationLabel.toLowerCase()) ||
+        (d.title && req.description && req.description.toLowerCase().includes(d.title.toLowerCase()))
+      );
+      if (match) {
+        this.assignmentRequest.disasterId = match.id || 0;
+      } else {
+        // Use "Other / Field Operation" if no specific disaster matches
+        this.assignmentRequest.disasterId = null;
       }
     });
   }
